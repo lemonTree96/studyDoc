@@ -1,9 +1,5 @@
----
-
----
-
- @[toc](Java基础)
  &emsp; &emsp;Java是纯粹的面向对象的编程语言，它吸收了C++语言的特点，同时也摒弃了C++中难以理解的多继承，指针等概念。本Blog从C++为角度，主要学习总结C++与Java之间的区别，以及Java本身的基础特性。对于Java与C++的共有特性则略过。
+
 ***
 ###  一.  Java运行机制
 &emsp; &emsp; Java介于编译型语言和解释型语言之间。编译型语言(C、C++)其代码是直接编译成机器码执行，但是不同的平台(x86、ARM等)CPU的指令集不同，因此，需要编译出每一种平台的对应机器码。解释型语言(Python、Ruby)由解释器直接加载源码然后编译运行，代价是运行效率太低。而Java是将代码编译成一种<font color=red>“**字节码**”</font>，<font color=green>针对不同平台编写虚拟机(JVM)，不同平台的虚拟机负责加载字节码并执行，这样就实现了“一次编写，到处运行”。</font>
@@ -58,7 +54,8 @@ public class t2Class()
   &emsp; &emsp;  ● 自定义的类在编译后会生成一个唯一的Class对象，Class对象保存在与自定义类同名的.class文件中
   &emsp; &emsp;  ● 无论创建多少个自定义类的对象，有且只有一个Class对象，表示自定义类的类型信息。
   &emsp; &emsp; ● Class类没有公共的构造方法，仅在类加载的过程中，由JVM自动构造，因此不能显式的声明一个Class对象。
-  ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210427234255784.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =640x180)
+
+<img src="https://img-blog.csdnimg.cn/20210427234255784.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =640x180 s" alt="在这里插入图片描述" style="zoom: 50%;" />
 
 
 > <font color=SlateBlue>  <u>**Q. Class类的作用 ？**</u></font>
@@ -206,7 +203,7 @@ Person p2=p1;
 
 > <font color=SlateBlue>  <u>**Q1. 虚引用 与 软引用、弱引用的区别 ？**</u></font>
 &emsp;  虚引用**必须**和引用队列 (`ReferenceQueue`) 联合使用。当垃圾回收器准备回收一个对象时，如果发现它还有虚引用，就会在回收对象的内存之前，把这个虚引用加入到与之关联的引用队列中。
-![在这里插入图片描述](https://img-blog.csdnimg.cn/20210509232546692.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =660x184)
+![在这里插入图片描述](https://img-blog.csdnimg.cn/20210509232546692.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =660x184 style="zoom:30%; ")
 ```java 
 class Superclass{
     public void test(){
@@ -278,10 +275,14 @@ public class test {
     }
 }
 ```
-![在这里插入图片描述](https://img-blog.csdnimg.cn/20210505231347312.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =540x300)
+<img src="https://img-blog.csdnimg.cn/20210505231347312.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =540x300 s" alt="在这里插入图片描述" style="zoom:50%;" />
+
+
+
  ▍ **2.3.4 Java 类反射 - Class对象的主要应用**
- &emsp; &emsp; Java程序在运行之前需要先编译。程序中的对象初始化，对象的调用在编译时期就已经确定并加载到JVM中。当程序在运行时需要 “**动态加载**” 某些类时，由于这些类并没有加载到JVM当中，无法直接获取。但是<font color=green>通过Java的反射机制，可以在运行时动态地创建对象并调用其属性和方法，不需要提前在程序中(编译时期)进行对象的初始化和调用。</font><font color=red>Java反射机制的本质是JVM得到Class对象之后，再通过Class对象进行反编译，从而获取对象的各种信息。</font>
+ &emsp; &emsp; Java程序在运行之前需要先编译。程序中的对象初始化，对象的调用在编译时期就已经确定并加载到JVM中。当程序在运行时需要 "**动态加载**" 某些类时，由于这些类并没有加载到JVM当中，无法直接获取。但是<font color=green>通过Java的反射机制，可以在运行时动态地创建对象并调用其属性和方法，不需要提前在程序中(编译时期)进行对象的初始化和调用。</font><font color=red>Java反射机制的本质是JVM得到Class对象之后，再通过Class对象进行反编译，从而获取对象的各种信息。</font>
  ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210321233948667.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70)
+
 > <font color=SlateBlue>  <u>**Q1. 反射有什么用途 ？**</u></font>
 &emsp;  ① 通过Java反射机制，访问Java未初始化对象的属性和方法。
 &emsp;  ②  反射最重要的用途就是开发各种通用框架。如: `Spring`都是通过`xml`文件配置化的，为了保证框架的通用性，大多数框架需要根据配置文件加载不同的类或者对象，调用不同的方法，这时框架就必须使用反射在程序运行时动态加载需要使用的对象。
@@ -469,7 +470,10 @@ class CallableExample implements Callable {
  ▍ **2.5.3 Java 线程安全与数据安全**
  &emsp;&emsp;  由于线程创建和运行时，必须通过 Runnable 来定义需要执行的任务，当在 Runnable -> run()方法中定义了一个线程的局部变量，且有多个(>2个) Thread 启动并运行该 Runnable任务时，会出现两个问题：
 &emsp;&emsp; **①  线程安全：** 当多线程在访问共享数据 (Runnable run()中的局部变量) 时,如果一个线程正在执行而没有执行完,它的执行权被其他线程抢走了就有可能出现安全问题。为了解决这个问题，Java提供了同步器来保证线程运行时顺序和同步。
-&emsp;&emsp;  **② 数据安全：** 由于局部变量var是所有线程共同拥有的，因此Thread-1对var的修改会影响Thread-2对var的使用。为了解决这个问题，Java提供了 ThreadLocal 保证线程数据的安全性。![在这里插入图片描述](https://img-blog.csdnimg.cn/20210630232712813.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =640x115)
+&emsp;&emsp;  **② 数据安全：** 由于局部变量var是所有线程共同拥有的，因此Thread-1对var的修改会影响Thread-2对var的使用。为了解决这个问题，Java提供了 ThreadLocal 保证线程数据的安全性。
+
+<img src="https://img-blog.csdnimg.cn/20210630232712813.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =640x115" alt="在这里插入图片描述" style="zoom:40%;" />
+
 &emsp; &emsp;<font color=Sienna>**1. Java 线程安全**</font>
 
 &emsp; &emsp;<font color=Sienna>**2. Java  数据安全**</font>
@@ -561,6 +565,7 @@ public static void main(String[] args) throws InterruptedException {
 
  ▍ **2.6.2 Java 线程池原理**
  &emsp; &emsp; Java线程池的核心实现类是`ThreadPoolExecutor`，线程池的状态维护，任务管理都在`ThreadPoolExecutor`类中实现，其继承关系如下图所示： ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210523233653659.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =640x320)
+
  ><font color=SlateBlue>  <u>**Q1. Executor接口、ExecutorService接口 和 Exexutors的区别 ？**</u></font>
 >&emsp;  <font color=green>● Executor：Executor 是一个抽象层面的核心接口，主要是将任务 Task本身和执行任务分离，解耦合。</font>
 >&emsp;  <font color=green>● ExecutorService：ExecutorService 接口继承了 Executor 接口，对 Executor 接口进行了扩展，并返回 `Future 对象`，为线程池终止，关闭线程池等提供操作方法。</font>`Future 对象`提供了**异步执行**，因此只要提交需要执行的任务，无需等待结果，在需要时通过`Future.isDone() 方法`检查 Future 是否执行完成。如果执行完成，就可以通过 `Future.get() 方法`获得执行结果。<font color=orange>**注意:** `Future.get() 方法`是一个阻塞式的方法，如果调用时任务还没有完成，会阻塞等待，直到任务执行结束。因此在获取结果前，先通过`Future.isDone() 方法`检查任务是否执行完成。</font>
@@ -648,8 +653,7 @@ public static void main(String[] args) throws InterruptedException {
 
 emsp; &emsp;大量的应用使用Java进行开发，其原因之一是Java拥有非常丰富和框架与基础组件，这些框架与组件使得Java的开发十分高效和便捷。
 
-
- ![](https://img-blog.csdnimg.cn/20210324234401131.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =720x370)
+<img src="https://img-blog.csdnimg.cn/20210324234401131.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =720x370" style="zoom: 80%;" />
 
 ***
 
@@ -659,7 +663,8 @@ emsp; &emsp;大量的应用使用Java进行开发，其原因之一是Java拥有
 
 &emsp; &emsp; 对于一个项目往往会调用大量的第三方依赖jar文件，因此，每创建一个项目,就需要建立这样的一个 `/lib` 目录，然后将使用的jar文件复制到项目中。对于多个项目共用的jar包，多个副本的存在，会造成磁盘资源的浪费，也使得版本的一致性管理变得困难。因此需要工具对`Java Jar`包进行统一管理 。
 &emsp; &emsp; `Maven`是基于项目对象模型(`POM`)，利用一个中央仓库管理项目的构建、报告和文档等操作过程。`Maven` 是一个项目管理工具，可以对 Java 项目进行构建、依赖管理。`Maven`的框架如下图所示：
-![在这里插入图片描述](https://img-blog.csdnimg.cn/20210323235801116.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =730x220)
+
+<img src="https://img-blog.csdnimg.cn/20210323235801116.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =730x220" alt="在这里插入图片描述" style="zoom: 80%;" />
 
 #####   ▍ **3.1.1 POM**
 
