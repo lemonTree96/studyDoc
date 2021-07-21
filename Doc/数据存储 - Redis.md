@@ -15,7 +15,9 @@
 ###  一.  Redis 应用场景
  &emsp;&emsp; 由于Redis是基于内存的，性能高，因此Redis的应用场景如下：
  &emsp;&emsp; 数据的高并发读写(数据访问频率高)，配合MySQL等关系型数据库做高速缓存，缓存高频率访问的数据，从而降低数据库的IO。 
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210130154803154.png#pic_center =350x180)
+
 ***
  ###  二.  Redis 数据结构与底层原理
 &emsp; &emsp; 在Redis中包含五大数据结构：<font color=red>String(字符串)，Hash(哈希)，List(列表)，Set(集合)，Sorted Set(有序集合)。</font>不同的数据结构使用的命令不同，但所有的Redis命令都是<font color=red>原子操作</font>(注意:对命令是原子的，而不是对字段是原子的)，避免了多个客户端的操作命令在执行过程中的竞争，但不能避免多个客户端对字段执行操作时的竞争。
@@ -23,16 +25,22 @@
 #### 2.1 String
 ▍ **2.1.1 String类型**
 &emsp;&emsp;String(字符串)类型是一个<font color=red>二进制安全</font>的字符串，一个Key对应一个字符串。所谓二进制安全是指字符串不是根据某种特殊的标志来解析的(如C语言中的`"\0"`)，因此无论输入是什么，总能保证输出是处理的原始输入而不是根据某种特殊格式来处理。一个字符串类型的键允许存储数据的最大容量是512MB。
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210127001949651.png#pic_center)
+
 ▍ **2.1.2 String类型的应用场景**
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210131151420618.png#pic_center =450x100)
+
 &emsp;&emsp; ① 计数器：利用Redis中原子性的自增操作(incr，decr)，可以实现「限制一个手机号发多少次短信」,「用户点赞数」,「用户访问数」。
 &emsp;&emsp; ② 限速器：限制某个用户访问某个应用的频率，如「抢购时防止用户多次点击带来的访问压力」，「用户下单时多次操作」。
 &emsp;&emsp; ③ <font color=red>**分布式锁**</font>： 通过set和del操作，在Redis中，加锁就是给Key键设置一个值，解锁就是将该Key键删除。
 
 ▍ **2.1.3 String类型底层原理**
 &emsp;&emsp;为了实现扩展、安全和性能，String底层采用的是`简单动态字符串 SDS`。其数据结构如图所示：
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210130165136886.png#pic_center)
+
 &emsp;&emsp; 通过`SDS`，Redis的String有以下几个优点：
 &emsp; &emsp;  ① 获取字符串长度的复杂度为O(1)，不需要遍历所有元素。
 &emsp; &emsp;  ② 不会造成缓冲区的溢出，在执行字符串拼接时，SDS会判断剩余的free空间是否能存下需要拼接的字符串。防止出现C语言中strcat()造成的字符串溢出问题。
@@ -41,12 +49,17 @@
 &emsp;&emsp;&emsp; ● 在对SDS字符串进行修改后，若SDS的长度大于1MB时，则SDS会分配1MB的未使用空间。即`free=1MB`。
 &emsp;&emsp;&emsp; ● 当SDS字符串进行删除时，不会进行内存的重新分配，多余的空间也不会被回收，会留着为字符串再次添加做准备，减少了内存重新分配的次数。
 &emsp; &emsp;  ④ 字符串的二进制安全。String是根据len属性来判断当前字符串是否结束，而不是以`‘\0’`作为判断字符串结束的标准。因此`字符串输出=字符串输入`。
+
 #### 2.2 List
 ▍ **2.2.1 List类型** 
 &emsp; &emsp;  List类型：该类型是一个简单的字符串列表，一个Key对应一个List，按照插入顺序排序。List基于双链表实现，既可以从头部插入数据，也可以从尾部插入数据。一个列表最多可以包含2的23次方-1 个元素。
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210130211052889.png#pic_center)
+
 ▍ **2.2.2 List应用场景** 
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210131151519954.png#pic_center =600x90)
+
 &emsp;&emsp; ① 消息队列：通过lpop和rpush，实现简单的点对点的消息队列。
 &emsp;&emsp; ② 排行榜(非实时计算)：将每隔一段时间计算一次的排行榜存储在list中，通过lrange命令可以分页查看队列中的数据。
 &emsp;&emsp; ③ 最新列表(非排序)：每次通过lpush命令往列表中插入新的元素，然后通过lrange读取最新的元素列表，如朋友圈点赞列表，评论列表。
@@ -56,7 +69,9 @@
 &emsp; &emsp;  1. 压缩列表 `ziplist`:
 &emsp; &emsp;  `ziplist`是为了Redis节约内存而开发的。当元素个数较少时，Redis用`ziplist`来存储数据，当元素个数超过某个值时，链表键中会把 `ziplist` 转化为 `linkedlist`，字典键中会把 `ziplist` 转化为 `hashtable`。
 &emsp; &emsp; `ziplist` 是由一系列特殊编码的内存块构成的列表(内存连续，但每个元素长度不同，采用变长编码)， 一个`ziplist` 包含多个节点`entry`。由于`ziplist`的内存是连续分配的，所以遍历速度很快。
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/2021013022302119.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center)
+
 &emsp; &emsp;  2. 双向链表 `linkedlist`:
 &emsp; &emsp;  在创建新列表时 redis 默认使用 `redis_encoding_ziplist` 编码， 当以下任意一个条件被满足时， 列表会被转换成 `redis_encoding_linkedlist` 编码：
 &emsp; &emsp;  ● 试图往列表新添加一个字符串值，且这个字符串的长度超过 `server.list_max_ziplist_value` (默认值为64)。
@@ -65,19 +80,28 @@
 
 &emsp; &emsp;  在Redis 3.2版本之后，List的底层通过`QuickList`来实现。
 &emsp; &emsp; `QuickList`是一个`ziplist`组成的双向链表。每个节点使用`ziplist`来保存数据。
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210130231941979.png#pic_center =300x70)
+
 #### 2.3 Hash
 ▍ **2.3.1 Hash类型**
-&emsp; &emsp;  **Hash**(哈希)类型：该类型是由字段`field`和关联的`value`组成的`map`。一个`Key`可以对应多个`map`。其中，`field`和`value`都是字符串类型的。Hash类型常用来缓存对象信息，如用户信息，配置信息等。![在这里插入图片描述](https://img-blog.csdnimg.cn/20210127002314318.png#pic_center)
+&emsp; &emsp;  **Hash**(哈希)类型：该类型是由字段`field`和关联的`value`组成的`map`。一个`Key`可以对应多个`map`。其中，`field`和`value`都是字符串类型的。Hash类型常用来缓存对象信息，如用户信息，配置信息等。
+
+![在这里插入图片描述](https://img-blog.csdnimg.cn/20210127002314318.png#pic_center)
+
 ▍ **2.3.2 Hash应用场景**
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210131152008353.png#pic_center =450x60)
+
 ▍ **2.3.3 Hash类型底层原理**
 &emsp; &emsp;  对于Hash类型，其底层数据结构分为两种：`ziplist`和`hashtable`。当满足以下两个条件时，采用`ziplist`数据结构，其余都采用`hashtable`数据结构：
 &emsp;&emsp;&emsp; ● 哈希对象保存的所有键值对的键和值的字符串长度都小于64字节。
 &emsp;&emsp;&emsp; ● 哈希对象保存的键值对数量小于512个。
 
 &emsp; &emsp;  1. `ziplist`数据结构在`List`中已经介绍过了，这里只介绍`hashtable`(字典)，其数据结构如下图所示：
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210131120206429.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70)
+
 &emsp;&emsp;Redis对哈希表的`Rehash`操作步骤如下：
 &emsp; &emsp;  **Step1.** 为ht[1]分配空间，ht[1]哈希表的空间大小取决于操作，以及ht[0]当前包含的键值对的数量，让`HashTable`同时持有ht[0]和ht[1]两个哈希表。
 &emsp;&emsp;&emsp;● 扩展：ht[1]的大小为第一个大于等于ht[0].used*2。
@@ -86,6 +110,7 @@
 &emsp; &emsp;  **Step3**. 在`Rehash`进行期间，每次对字典执行添加、删除、查找或者更新操作时，程序除
 了执行指定的操作以外，还会将ht[0]哈希表在`rehashidx`索引上的所有键值对`Rehash`到ht[1]，当`Rehash`工作完成之后，程序将`rehashidx+1`(表示下次将`Rehash`下一个桶)。
 &emsp; &emsp;  **Step4**. 随着`HashTable`操作的不断执行，最终在某个时间点上，ht[0]的所有键值对都会被`Rehash`至ht[1]，这时程序将`rehashidx`属性的值设为-1，表示`Rehash`操作已完成。
+
 #### 2.4 Set
 ▍ **2.4.1 Set类型** 
 &emsp; &emsp;  Set类型是String类型的**无序集合**。集合成员是唯一的，不能出现重复的数据。集合是通过哈希表实现的，所以添加，删除，查找的复杂度都是O(1)。
@@ -94,20 +119,28 @@
 &emsp;&emsp;   <font color=green>② List适合经常追加数据，插入，删除数据。但随机取数效率比较低；Set适合经常地随机储存，插入，删除。但是在遍历时效率比较低。</font>
 
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210131155838323.png)
+
 ▍ **2.4.2 Set类型的应用场景**
- ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210131122405768.png#pic_center =590x90)
+
+![在这里插入图片描述](https://img-blog.csdnimg.cn/20210131122405768.png#pic_center =590x90)
+
 ▍ **2.4.3 Set类型底层原理**
 &emsp; &emsp;对于Set类型，其底层数据结构分为两种：`intset`和`hashtable`。当满足下面两个条件时使用`intset`存储，否则使用`hashtable`。
 &emsp;&emsp;&emsp; ● 集合对象保存的所有元素都是整数值
 &emsp;&emsp;&emsp; ● 集合对象保存的元素数量不超过512个。
 
 &emsp;&emsp; **1.** `intset`数据结构如下图所示：
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210131160746807.png#pic_center)
+
 &emsp;&emsp;  为了尽可能地节省内存，会根据插入数据的大小选择不一样的类型(编码方式)来进行存储。当插入的元素超过当前的编码方式时，需要对元素类型(编码方式)从后到前进行升级(2字节->4字节，4字节->8字节)，升级后就无法降级。
+
 #### 2.5 Sorted Set
 ▍ **2.5.1 Sorted Set类型**
 &emsp;&emsp;  Sorted Set类型是String类型的有序集合，每个元素都会关联一个double类型的”分数“，<font color=red>Redis根据分数的大小对集合的成员进行排序。</font>`Sorted Set`的成员是唯一的,但分数可以重复。`Sorted Set`是通过哈希表实现的，所以添加，删除，查找的复杂度都是 O(1)。
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210131172929296.png)
+
 >&emsp;&emsp; <font color=SlateBlue><u>**Q1. Sorted Set 和 List 区别 ？**</u></font>
 &emsp;&emsp;  ① List类型通过双向链表实现，获取靠近两端的数据速度快，而当元素增多后，访问中间数据的速度会较慢，所以List更适合"新鲜事“，”日志“，这类很少访问中间元素的应用。
 &emsp;&emsp;  ② Sorted Set通过散列表和跳跃表实现，读取中间元素的速度也很快O(logN)。
@@ -119,39 +152,52 @@
 
 ▍ **2.5.3 Sorted Set类型**
 &emsp; &emsp;对于Sorted Set类型其底层数据结构是通过**跳跃表**实现的。跳跃表主要是针对**有序链表**而提出的快速查找的数据结构。由于有序链表并不能像有序数组那样通过二分查找法来快速查找，因此通过建立索引的方式来提高查询效率。其数据结构如图所示：
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210131232248380.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center  =600x240)
+
 &emsp; &emsp; 跳跃表的性质如下：
 &emsp; &emsp;  ①  每一层都是一个有序的链表，最底层(Level 1)的链表包含所有元素。
 &emsp; &emsp;  ② 如果一个元素出现在 Level i 的链表中，则它在 Level i 之下的链表也都会出现。
 &emsp; &emsp;  ③ 在Level i (i>1)层的节点，每个节点包含两个指针，一个指向同一链表中的下一个元素，另外一个指向下面一层的元素。
 &emsp; &emsp; ④ 每一个节点的层数都是随机算法得出的，插入一个新的节点不会影响其他节点的层数，因此插入操作只需要修改插入节点前后的指针即可，避免了对后续节点的重新调整。
 &emsp; &emsp; ⑤ 跳表搜索的时间复杂度平均 O(logN)，最坏O(N)。
+
 ***
  ###  三.  Redis 事务
  #### 3.1 事务简介
  ▍ **3.1.1 Redis事务基本概念**
  &emsp;&emsp; Redis中的事务是一组命令的集合，一个事务中的命令要么都执行，要么都不执行，在事务执行过程，会按照顺序串行化执行队列中的命令，其他客户端提交的命令请求不会插入到事务执行命令序列中。同时事务中每个命令的执行结果都是最后一起返回的，在执行过程中无法获得某个命令的结果值。<font color=green>即一次性，顺序性，排他性。</font>
  &emsp;&emsp; <font color=red>Redis的单条命令是原子性的，但**Redis的事务不保证原子性**，**且没有回滚**，事务中任意命令执行失败(运行错误，而不是语法错误)，其余的命令仍会被执行。</font>如：
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210206144808755.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =330x190)
+
  ▍ **3.1.2 Redis事务的常用命令**
   &emsp;&emsp; Redis事务通过`MULTI`命令开始，然后将命令入队，最后只有`EXEC`执行后，所有入队的命令才会被执行。
   ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210206205539647.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center)
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210206163152309.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center)
+
 >&emsp;&emsp; <font color=SlateBlue><u>**Q1.  Redis事务命令与普通命令执行上的区别 ？**</u></font>
 &emsp;&emsp;  ① 非事务状态下的命令以单个命令为单位执行，前一个命令和后一个命令的客户端不一定是同一个；而事务状态则是以一个事务为单位，执行事务队列中的所有命令：除非当前事务执行完毕，否则服务器不会中断事务，也不会执行其他客户端的其他命令。
 &emsp;&emsp; ②  <font color=red>在非事务状态下，执行命令所得的结果会立即被返回给客户端；而事务则是将所有命令的结果集合到回复队列，再作为 `EXEC` 命令的结果返回给客户端。</font>
 #### 3.2 Redis事务的应用
  ▍ **3.2.1 Redis事务+Watch 实现CAS(乐观锁)**
  &emsp;&emsp;  在锁机制的划分中，分为乐观锁和悲观锁。
-  &emsp;&emsp;  ● 悲观锁有强烈的独占和排他特性。它指的是对数据被外界(包括本系统当前的其他事务，以及来自外部系统的事务处理)修改持保守态度。因此，在整个数据处理过程中，将数据处于锁定状态。传统的关系型数据库使用这种锁机制，比如行锁，表锁等，读锁，写锁等，都是在做操作之前先上锁。
- ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210206212159382.png#pic_center)
+  &emsp;&emsp;  ● 悲观锁有强烈的独占和排他特性。它指的是对数据被外界(包括本系统当前的其他事务，以及来自外部系统的事务处理)修改持保守态度。因此，在整个数据处理过程中，将数据处于锁定状态。传统的关系型数据库使用这种锁机制，比如行锁，表锁等，读锁，写锁等，都是在做操作之前先上锁。 
+
+![在这里插入图片描述](https://img-blog.csdnimg.cn/20210206212159382.png#pic_center)
+
 &emsp;&emsp; ● 乐观锁默认假设数据一般情况下不会造成冲突，所以在数据进行提交更新的时候，才会正式对数据的冲突与否进行检测，如果发现冲突了，则返回给用户错误的信息，让用户决定如何去做。
 &emsp;&emsp;  根据`Watch`的机制：在事务 `EXEC` 命令执行时，Redis 会检查被 `Watch` 的 Key，只有被 `Watch` 的 Key 从 `Watch` 起始时至今没有发生过变更，`EXEC` 才会被执行。如果 `Watch` 的 Key 在 `Watch` 命令到 `EXEC` 命令之间发生过变化，则 `EXEC` 命令会返回失败。这个过程与CAS的实现效果相同。因此Redis事务+Watch 实现CAS(乐观锁)。
+
 ###  四.  Redis 脚本
 &emsp;&emsp; 对于Redis，可以通过Lua语言编写脚本，并传到Redis中执行。使用脚本的好处是:
 &emsp;&emsp; &emsp;  ① 减少网络开销，将原先的多次请求变为只需要一次请求，减少了命令的发送次数。
 &emsp;&emsp; &emsp; ② 原子操作:Redis会将脚本作为一个整体执行，中间不会被其他命令插入，从而避免了竞态竞争。
-&emsp;&emsp; &emsp; ③ 复用：当脚本写好后，后续遇到同样的需求直接调用即可。 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210206224158432.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70)
+&emsp;&emsp; &emsp; ③ 复用：当脚本写好后，后续遇到同样的需求直接调用即可。 
+
+![在这里插入图片描述](https://img-blog.csdnimg.cn/20210206224158432.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70)
+
 ***
 ###  五.  Redis 持久化
 &emsp;&emsp; 由于Redis运行在内存当中，当服务器关闭或Redis重启后，其存储的数据就会丢失，为了是Redis重启后能够恢复数据，需要将Redis持久化。Redis有两种方式来实现持久化：
@@ -175,7 +221,9 @@
 &emsp; &emsp;   ① Redis 通过`fork()`函数复制一份当前进程(父进程)的副本(子进程)。`fork()`函数使用写时复制(`Copy-on-write)`策略，因此当父线程改变数据时会发生复制，因此新的RDB文件存储的是执行`fork()`时那一刻的内存数据。
 &emsp; &emsp;   ② 父进程负责继续接收并处理客户端的命令请求，而子进程开始将内存中的数据写入磁盘的临时文件。
 &emsp; &emsp;  ③ 当子进程写完所有数据后，会用该临时文件替换旧的RDB文件，此时一次快照操作完成。
- ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210216231253366.png#pic_center)
+
+![在这里插入图片描述](https://img-blog.csdnimg.cn/20210216231253366.png#pic_center)
+
 #### 5.2 AOF 持久化
 &emsp;&emsp;  通过RDB快照方式持久化时，当异常退出时(进程意外终止时)会导致数据丢失。此时通过AOF持久化来避免这个问题。<font color=red>AOF持久化并不是通过快照内存的数据，而是以协议文本的方式，保存Redis所执行的写命令来记录数据库状态。</font>
 
@@ -188,17 +236,21 @@
  ▍ **5.2.2 AOF 的保存模式及其性能**
 &emsp;&emsp; <font color=green> **1. AOF三种保存模式：**</font>
 &emsp;&emsp;  **① 不保存(`AOF_FSYNC_NO`):** `WRITE`和`SAVE`都由主进程执行，两个操作都会阻塞主进程。
-&emsp; &emsp;  ”不保存“模式在调用`flushAppendOnlyFile`函数后，`WRITE`都会被执行，但`SAVE`操作只会在以下一种情况下会被执行：
+&emsp; &emsp;  "不保存"模式在调用`flushAppendOnlyFile`函数后，`WRITE`都会被执行，但`SAVE`操作只会在以下一种情况下会被执行：
 &emsp; &emsp; &emsp;  ● Redis 被关闭；
 &emsp; &emsp; &emsp;  ● AOF功能被关闭；
 &emsp; &emsp; &emsp;  ● 系统的写缓存被刷新
 &emsp;&emsp;  **② 每秒保存一次(`AOF_FSYNC_EVERYSEC`)：** `WRITE`操作由主进程执行，阻塞主进程。`SAVE`操作由子线程执行，不直接阻塞主进程，但`SAVE`操作完成的快慢会影响`WRITE`操作的阻塞时长。
- ![在这里插入图片描述](https://img-blog.csdnimg.cn/2021021715573051.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center)
+
+![在这里插入图片描述](https://img-blog.csdnimg.cn/2021021715573051.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center)
+
 &emsp;&emsp;  **③ 每执行一个命令保存一次(`AOF_FSYNC_ALWAYS`)**
 &emsp; &emsp;  每执行完一个命令，`WRITE`和`SAVE`都会被执行，但<font color=green>在`SAVE`执行期间，主线程会被阻塞，不能接受命令请求。</font>
 
 &emsp;&emsp; <font color=green> **2. AOF保存模式的性能：**</font>
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210217162938512.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center)
+
  ▍ **5.2.3 AOF 文件的读取和数据还原**
  &emsp; &emsp; Redis 读取 AOF 文件并还原数据库的详细步骤如下：
  &emsp; &emsp; ① 创建一个不带网络连接的伪客户端。
@@ -218,7 +270,9 @@
 &emsp; &emsp; &emsp;  ●从结构上，单个Redis服务器容易出现单点故障使服务中断。
 &emsp; &emsp; &emsp;  ●从容量上，单个Redis服务器的内存容易出现存储瓶颈。
 &emsp; &emsp; 因此，通过多台Redis服务器来组成Redis集群来提高性能，这就需要面对如何管理集群的问题。
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210217210050358.png#pic_center)
+
 #### 6.1 Redis 主从复制
 
 > &emsp;&emsp; <font color=SlateBlue><u>**Q1.  什么是主从复制 ？**</u></font>
@@ -236,19 +290,23 @@
 &emsp; &emsp;  ②<font color=red> Redis 主从复制不具备自动容错和恢复的功能</font>，若是从主同步的过程网络出故障了，导致主从同步失败，也会出现问题数据一致性的问题。
 
 &emsp; &emsp;  在主从复制中，数据库分为两类：**主库**和**从库**。<font color=green>主库可以进行读写操作(R/W)，当写操作导致数据变化时会自动同步到从库。从库一般为只读操作，并接收来自主库的数据。</font>主从复制存在两种架构：**① 一主多从**，**② 链式主从复制**。
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/2021021721284177.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center)
+
  ▍ **6.1.1 Redis 主从复制的过程**
  &emsp; &emsp; ① 当从服务器(slave)启动后会向主服务器(master)发送`SYNC`命令，master收到命令后通过RDB持久化的`BGSAVE`命令保存主服务器(master)快照，并且将快照期间主服务器接收到客户端的写命令保存起来(因为快照执行时会阻塞会阻塞所有来自客户端的请求)。
 &emsp; &emsp; ② `master`将保存的快照发送给slave，slave收到主数据库发送过来的快照就会加载到自己的数据库中。<font color=green>在此期间，`master`会一直接受客户端的命令，立即执行后将结果返回到客户端(即主从复制过程 与 master和客户端交互是异步的)。</font>
 &emsp; &emsp; ③ 最后`master`将缓存的命令同步给`slave`，`slave`收到命令后执行一遍，这样`master`与`slave`数据就保持一致，即完成了主从复制的初始化。
 &emsp; &emsp; ④ 后续`master`收到**写命令后**，将命令发送到从`slave`，保持主从数据库的一致性。
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210226231007532.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70)
 
  ▍ **6.1.2 Redis 主从增量复制**
  &emsp; &emsp; 当主服务器与从服务器之间发生重新连接时，如果进行一次完整的复制过程是没有必要的，因此Redis提出了<font color=red>增量复制</font>，其实现原理如下：
   &emsp; &emsp; ① 从数据库会存储主数据库的运行ID(`run id`，每启动一次Redis实例会产生一个唯一的ID)，在复制阶段，主服务器每将一个写命令发送到从服务器时，同时会存放到积压队列中，并记录积压队列中命令的偏移范围。同时从服务器也会记录该命令的偏移范围。
    &emsp; &emsp; ② 当主从服务器重新连接后，<font color=green>主服务器首先会判断从服务器发送过来的`run id`是否与自己的相同，然后判断从服务器中的最后同步的偏移量是否在积压队列中，如果存在则将积压队列中的命令发送给从服务器即可。</font>
-   ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210221235544116.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =490x220)
+
+![在这里插入图片描述](https://img-blog.csdnimg.cn/20210221235544116.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =490x220)
 
 
  ▍ **6.1.3 Redis 主从复制的持久化**
@@ -262,6 +320,7 @@
 &emsp; &emsp; 通常情况下，<font color=green>哨兵机制会建立多个哨兵节点(进程)，共同监控数据节点的运行状况，同时各个哨兵之间相互通信，交互主从节点的监控数据，每隔1秒每个哨兵会向整个集群 "<font color=f15a22>master主服务器+slave从服务器+其他sentinel（哨兵）进程</font>"，发送一次ping命令做一次心跳检测。</font>Redis设置哨兵的命令如下： `sentinel monitor <master-name主服务器名> <主服务器ip> <主服务器redis-port> <quorum,至少需要quorum个Sentinel进程同意才能将master判断为失效>`。在设置哨兵时，只需要对master Server设置哨兵即可，哨兵进程会自动搜寻master server的所有slave server。
 
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210225000208200.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =560x300)
+
  ▍ **6.2.1 Redis 哨兵的功能**
 &emsp; &emsp; ● 集群监控：负责监控Server和Slave进程是否正常工作；
 &emsp; &emsp; ● 消息通知：当某个实例故障时，发送消息给管理员；
@@ -271,6 +330,7 @@
  &emsp; &emsp;  当一个master server出现故障时，此时需要**所有的哨兵**进行“选举投票”，从而Redis哨兵才能知道master server是否出现故障，才能去下线现有master server，将slave server选举为新的master server。这时“投票”会有两个过程：
  &emsp;  &emsp;  **①  主观下线(Subjectively Down,SDOWN)**
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210227000442584.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70)
+
  &emsp;  &emsp;  **②  客观下线(Objectively Down，ODOWN)**：当半数哨兵节点都主观判定主节点出现故障(主观下线)，此时多个哨兵节点交换主观判定结果，会判定主节点客观下线。
 
   ▍ **6.2.3 Redis 选举新的Master server**
@@ -294,36 +354,45 @@
 &emsp; &emsp;  ④ Hash槽的目的是确认数据存放到哪个片区的Redis主节点上，实现Redis集群分摊Key。
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210228160038620.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70)
 > &emsp;&emsp; <font color=SlateBlue><u>**Q1.  Redis虚拟Hash槽分区的特点 ？**</u></font>
- &emsp; &emsp; ① 解耦数据和节点之间的关系，简化了节点扩容和收缩难度；
- &emsp; &emsp; ②  节点自身维护槽的映射关系，不需要客户端或者代理服务维护槽分区元数据；
-  &emsp; &emsp; ③ 支持节点、槽和键之间的映射查询，用于数据路由，在线集群伸缩等场景。  
- &emsp;&emsp; <font color=SlateBlue><u>**Q2.  Redis如何判断key对应的槽道号是否由本节点管理? ？**</u></font>
-&emsp; &emsp; 在Redis的底层维护了`unsigned char myslots[CLUSTER_SLOTS/8]` 数组存放每个节点的槽信息，该数组是一个16384位的二进制位序列，每一位对应一个槽道号，当该二进制序列的某一位为1时，代表当前结点对该槽道号具有管理权。
-&emsp; &emsp; ● 当客户端通过某一节点向集群发送`set key value`时，<font color=green>该节点会通过CRC16计算Key的Hash值(槽道号)，当前结点根据槽道号去自己的二进制序列中去比对，如果该槽道号对应的二进制序列中的那一位为1，则直接将该键值对存储到当前节点中。</font>如：节点1负责存储0~5000的槽数据，但此时只有0-4存储有数据，其他槽还没有数据，则只有0-4对应的值为1.
-![在这里插入图片描述](https://img-blog.csdnimg.cn/20210228162526735.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =550x90)
-&emsp; &emsp; ●  如果该Key不归当前节点存储，则根据`clusterNode`索引数组，通过槽道号找到该槽道号真正的管理节点，并将信息转交给其真正的管理节点进行保存。
-![在这里插入图片描述](https://img-blog.csdnimg.cn/20210228175554307.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =700x100)
+>  &emsp; &emsp; ① 解耦数据和节点之间的关系，简化了节点扩容和收缩难度；
+>  &emsp; &emsp; ②  节点自身维护槽的映射关系，不需要客户端或者代理服务维护槽分区元数据；
+> &emsp; &emsp; ③ 支持节点、槽和键之间的映射查询，用于数据路由，在线集群伸缩等场景。  
+>  &emsp;&emsp; <font color=SlateBlue><u>**Q2.  Redis如何判断key对应的槽道号是否由本节点管理? ？**</u></font>
+> &emsp; &emsp; 在Redis的底层维护了`unsigned char myslots[CLUSTER_SLOTS/8]` 数组存放每个节点的槽信息，该数组是一个16384位的二进制位序列，每一位对应一个槽道号，当该二进制序列的某一位为1时，代表当前结点对该槽道号具有管理权。
+> &emsp; &emsp; ● 当客户端通过某一节点向集群发送`set key value`时，<font color=green>该节点会通过CRC16计算Key的Hash值(槽道号)，当前结点根据槽道号去自己的二进制序列中去比对，如果该槽道号对应的二进制序列中的那一位为1，则直接将该键值对存储到当前节点中。</font>如：节点1负责存储0~5000的槽数据，但此时只有0-4存储有数据，其他槽还没有数据，则只有0-4对应的值为1。
+>
+> <img src="https://img-blog.csdnimg.cn/20210228162526735.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =550x90 s" alt="在这里插入图片描述" style="zoom:35%;" />
+>
+> &emsp; &emsp; ●  如果该Key不归当前节点存储，则根据`clusterNode`索引数组，通过槽道号找到该槽道号真正的管理节点，并将信息转交给其真正的管理节点进行保存。
+> <img src="https://img-blog.csdnimg.cn/20210228175554307.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =700x100 s" alt="在这里插入图片描述" style="zoom:70%;" />
 
  ▍ **6.3.2 Redis 数据节点之间的通信**
  &emsp; &emsp;  节点存储数据的同时还需要提供维护节点元数据信息的机制，所谓元数据是指：节点负责哪些数据，是否出现故障等状态信息。Redis集群采用<font color=red>P2P的Gossip(流言)协议</font>，Gossip协议工作原理就是节点彼此不断通信交换信息，一段时间后所有的节点都会知道集群完整的信息。
- &emsp; &emsp; <font color=green>集群中的每个节点都会单独开辟一个TCP通道，用于节点之间彼此通信，每个节点在固定周期内通过特定规则选择几个节点发送`ping`消息，接收到`ping`消息的节点用`pong`消息作为响应。</font>（节点选择规则为:每秒会随机选取5个节点找出最久没有通信的节点发送`ping`消息，保证`Gossip`信息交换的随机性。每100毫秒都会扫描本地节点列表，如果发现节点最近一次接受`pong`消息的时间大于`cluster_node_timeout/2`，则立刻发送`ping`消息，防止该节点信息太长时间未更新）![在这里插入图片描述](https://img-blog.csdnimg.cn/20210228174332135.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70)
+ &emsp; &emsp; <font color=green>集群中的每个节点都会单独开辟一个TCP通道，用于节点之间彼此通信，每个节点在固定周期内通过特定规则选择几个节点发送`ping`消息，接收到`ping`消息的节点用`pong`消息作为响应。</font>（节点选择规则为:每秒会随机选取5个节点找出最久没有通信的节点发送`ping`消息，保证`Gossip`信息交换的随机性。每100毫秒都会扫描本地节点列表，如果发现节点最近一次接受`pong`消息的时间大于`cluster_node_timeout/2`，则立刻发送`ping`消息，防止该节点信息太长时间未更新）
+
+<img src="https://img-blog.csdnimg.cn/20210228174332135.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" style="zoom:80%;" />
+
 ***
 ###  七.  Redis 缓存问题
  &emsp; &emsp; Redis缓存在使用过程中，如果设计不当则会造成缓存出现问题，常见的缓存问题主要有：缓存穿透，缓存击穿，缓存雪崩。
 #### 7.1 缓存穿透
 &emsp; &emsp; 缓存穿透是指查询一个不存在的数据，由于缓存是不命中时，出于容错考虑，会导致这个不存在的数据每次请求都要到数据库中去查询，失去了缓存的意义。当查询数量过大时会造成数据库宕机。
 >&emsp;&emsp; <font color=SlateBlue><u>**Q1.  如何避免缓存穿透 ？**</u></font>
-&emsp;&emsp;避免缓存穿透通常有两种方法：<font color=green>**缓存空数据**和**布隆过滤器**。</font>
-&emsp;&emsp; **① 缓存空数据**：
-&emsp; &emsp; 发生缓存穿透，是因为缓存中没有存储这些空数据的key，导致这些请求全都打到数据库上，然而数据库中也没有该数据，使得下次请求会继续请求数据库，高并发时会导致数据库宕机。如果将数据库返回的空的查询结果也缓存在Redis中，则下次访问时，Redis会直接返回null，从而避免了查询数据库。
-![在这里插入图片描述](https://img-blog.csdnimg.cn/2021022821273187.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =680x200)
-&emsp; &emsp; 采用缓存空数据的方式有以下问题：
-&emsp; &emsp;  ● 采用空值做为缓存，意味着缓存层中存储了更多的键，需要更多的内存空间 ( 如果是攻击则会导致内存问题 )，因此需要这类数据设置一个较短的过期时间，让其自动剔除。 
-&emsp; &emsp;  ● 缓存层和存储层的数据会有一段时间窗口的不一致，会对业务有一定影响。例如空值的缓存过期时间设置为3分钟，如果此时存储层添加了这个数据，那此段时间就会出现缓存层和存储层数据的不一致，因此当存储层数据修改时，需要利用消息系统或者其他方式清除掉缓存层中的空对象。
+>&emsp;&emsp;避免缓存穿透通常有两种方法：<font color=green>**缓存空数据**和**布隆过滤器**。</font>
+>&emsp;&emsp; **① 缓存空数据**：
+>&emsp; &emsp; 发生缓存穿透，是因为缓存中没有存储这些空数据的key，导致这些请求全都打到数据库上，然而数据库中也没有该数据，使得下次请求会继续请求数据库，高并发时会导致数据库宕机。如果将数据库返回的空的查询结果也缓存在Redis中，则下次访问时，Redis会直接返回null，从而避免了查询数据库。
+>
+><img src="https://img-blog.csdnimg.cn/2021022821273187.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =680x200 s" alt="在这里插入图片描述" style="zoom:50%;" />
+>
+>&emsp; &emsp; 采用缓存空数据的方式有以下问题：
+>&emsp; &emsp;  ● 采用空值做为缓存，意味着缓存层中存储了更多的键，需要更多的内存空间 ( 如果是攻击则会导致内存问题 )，因此需要这类数据设置一个较短的过期时间，让其自动剔除。 
+>&emsp; &emsp;  ● 缓存层和存储层的数据会有一段时间窗口的不一致，会对业务有一定影响。例如空值的缓存过期时间设置为3分钟，如果此时存储层添加了这个数据，那此段时间就会出现缓存层和存储层数据的不一致，因此当存储层数据修改时，需要利用消息系统或者其他方式清除掉缓存层中的空对象。
 
 &emsp;&emsp; **② 布隆过滤器**：
 &emsp; &emsp; 布隆过滤器是指在缓存之前再加一道屏障，里面存储目前数据库中存在的所有key的Hash值，当有查询请求的时候，首先去布隆过滤器中查询该key是否存在。若不存在，则说明数据库中也不存在该数据，因此缓存都不要查了，直接返回null。若存在，则继续执行后续的流程，先前往缓存中查询，缓存中没有的话再前往数据库中的查询。
-![在这里插入图片描述](https://img-blog.csdnimg.cn/20210228213943914.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =780x180)
+
+<img src="https://img-blog.csdnimg.cn/20210228213943914.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =780x180 s" alt="在这里插入图片描述" style="zoom:70%;" />
+
 >&emsp;&emsp; <font color=SlateBlue><u>**Q2.  两种方法有什么区别 ？**</u></font>
 &emsp;&emsp;  对于恶意攻击，其Key往往不会相同，且数据量很大，对于同一个Key只会被请求一次，采用缓存空值的方式并不会起到保护数据库的作用。因此，<font color=red>对于**空数据的key各不相同、key重复请求概率低应当采用布隆过滤器的方式**</font>，对于<font color=red>**空数据的key数量有限、key重复请求概率较高，可以采用缓存空数据的方式**。</font>
 
@@ -331,13 +400,14 @@
 #### 7.2 缓存击穿 (热点数据缓存过期)
 &emsp; &emsp; 缓存击穿是指对于某些**热点数据**缓存在某个时间点过期的时候，恰好在这个时间点对这个Key有大量的并发请求过来，这些请求发现缓存过期会从后端数据库加载数据并回设到缓存，这个时候大并发的请求可能会瞬间把后端数据库压垮。
 >&emsp;&emsp;<font color=SlateBlue><u>**Q1.  如何避免缓存击穿 ？**</u></font>
-&emsp;&emsp;避免缓存击穿通常有两种方法：<font color=green>**设置互斥锁**和**设置缓存永不失效**。</font>
-&emsp; &emsp;  **① 设置互斥锁**：
-&emsp; &emsp; 当出现缓存击穿时，缓存数据失效，大量热点数据会直接访问数据库，且在访问数据库后，其结果会重新缓存到Redis中。因此，可以在查询数据库的时候设置互斥锁，只允许一个线程来查询数据库，同时重新建立缓存，从而避免大量数据同时访问数据库。
-![在这里插入图片描述](https://img-blog.csdnimg.cn/20210228221529979.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70)
-&emsp; &emsp; **② 设置缓存永不失效(过期)**
-&emsp; &emsp;  Redis缓存不失效是指从缓存层面来看，对热点`Key`不设置过期时间，所以不会出现热点key过期缓存击穿的问题。与此同时，为了保证Key数据的缓存更新，为每个`value`设置一个逻辑过期时间，当发现超过逻辑过期时间后，会使用单独的线程去构建缓存。
-![在这里插入图片描述](https://img-blog.csdnimg.cn/20210228223345657.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =540x240)
+>&emsp;&emsp;避免缓存击穿通常有两种方法：<font color=green>**设置互斥锁**和**设置缓存永不失效**。</font>
+>&emsp; &emsp;  **① 设置互斥锁**：
+>&emsp; &emsp; 当出现缓存击穿时，缓存数据失效，大量热点数据会直接访问数据库，且在访问数据库后，其结果会重新缓存到Redis中。因此，可以在查询数据库的时候设置互斥锁，只允许一个线程来查询数据库，同时重新建立缓存，从而避免大量数据同时访问数据库。
+>![在这里插入图片描述](https://img-blog.csdnimg.cn/20210228221529979.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70)
+>&emsp; &emsp; **② 设置缓存永不失效(过期)**
+>&emsp; &emsp;  Redis缓存不失效是指从缓存层面来看，对热点`Key`不设置过期时间，所以不会出现热点key过期缓存击穿的问题。与此同时，为了保证Key数据的缓存更新，为每个`value`设置一个逻辑过期时间，当发现超过逻辑过期时间后，会使用单独的线程去构建缓存。
+>
+><img src="https://img-blog.csdnimg.cn/20210228223345657.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =540x240 s" alt="在这里插入图片描述" style="zoom:70%;" />
 
 #### 7.3 缓存雪崩 (大量缓存同时过期)
 &emsp; &emsp;  缓存雪崩是指在我们设置缓存时采用了相同的过期时间，导致<font color=red>很多缓存在某一时刻**同时**失效</font>，请求全部转发到数据库，数据库瞬时压力过重雪崩。
@@ -350,17 +420,22 @@
 
  ▍ **8.1.1 Redis内存信息**
 &emsp; &emsp; 在Redis-cli客户端中，可以通过`info memtory`来查看Redis的内存信息。
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20210306165406638.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70#pic_center =640x320)
+
 &emsp;
 &emsp;&emsp; **① `used_memory` :** 为Redis实际存储数据的内存总量，包括<font color=green>自身内存，对象内存，缓存内存(输入输出缓冲区，复制缓冲区，复制积压缓冲区)和Lua内存。</font>
+
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/2021030617354664.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80Mjk2Mzk2OQ==,size_16,color_FFFFFF,t_70)
-&emsp;&emsp; **② `user_memory_rss`:** 指从操作系统的角度来看，Redis占用的物理内存的总量。`user_memory_rss = used_memory + 内存碎片`
+
+&emsp;&emsp;  **② `user_memory_rss`:** 指从操作系统的角度来看，Redis占用的物理内存的总量。`user_memory_rss = used_memory + 内存碎片`
 &emsp;
 &emsp;&emsp;  **③ `mem_fragmentation_ratio`:** Redis内存碎片率。
 &emsp; &emsp;  ● `mem_fragmentation_ratio < 1`: 表示Redis内存分配超出了物理内存，OS正在进行内存交换，内存交换会引起非常明显的响应延迟；
 &emsp; &emsp;  ● `mem_fragmentation_ratio ≈ 1.03` : Redis内存分配在合理区间。
 &emsp; &emsp;  ● `mem_fragmentation_ratio > 1.5` : Redis实际消耗的物理内存远大于存储数据所占用的内存，说明Redis内存碎片增加，内存管理出现问题。
->&emsp; &emsp;  <font color=SlateBlue><u> **Q1.  哪些场景会造成大量内存碎片 ？**</u></font>
+
+><font color=SlateBlue><u> **Q1.  哪些场景会造成大量内存碎片 ？**</u></font>
 &emsp; &emsp;   Ⅰ. Redis的Key-Value数据变长，且频繁进行数据更新。Redis的每个K-V对初始化的内存大小是最适合的，当修改的Value与原来内存大小不适用的时候，就需要<font color=green>**重新分配内存**</font>。重新分配之后，就会有一部分内存Redis无法正常回收，一直占用着，造成内存碎片。
 &emsp; &emsp;  Ⅱ. <font color=green>`maxmemory`限制导致key被回收删除。Redis写入大量数据，这些数据的Key和存储的不一致，数据超过`maxmemory`限制后redis会通过**Key的内存淘汰机制将部分旧数据淘汰**，而**被淘汰的数据本身占用的内存却没有被redis进程释放**，导致redis内存的有效数据虽然没有超过最大内存，但是整个进程的内存在一直增长。</font>
 
