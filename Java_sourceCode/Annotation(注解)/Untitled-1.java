@@ -39,8 +39,8 @@ public final class Class<T> implements java.io.Serializable,GenericDeclaration,T
     @SuppressWarnings("unchecked")
     public <A extends Annotation> A getAnnotation(Class<A> annotationClass) {
         Objects.requireNonNull(annotationClass);
-
-        return (A) annotationData().annotations.get(annotationClass);
+        //获取当前类映射的注解信息
+        return (A) annotationData().annotations.get(annotationClass); 
     }
 
     /**
