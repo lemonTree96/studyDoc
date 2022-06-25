@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
 import sun.reflect.ConstantPool;
 import sun.reflect.generics.factory.CoreReflectionFactory;
 import sun.reflect.generics.parser.SignatureParser;
@@ -25,57 +26,58 @@ import sun.reflect.generics.tree.TypeSignature;
 import sun.reflect.generics.visitor.Reifier;
 /**
  * 注解字节码
- * RuntimeVisibleAnnotations_attribute {  
-    // 前6个字节固定格式  
-    u2  attribute_name_index;   
-    u4  attribute_length;  
-    // 表示有几个注解  
-    u2  num_annotations;  
-    // 注解数组  
-    annotation  annotations[num_annotations];  
-}   
-annotation {  
-    // 主要指向该的类信息  
-    u2 type_index;  
-    // 该注解的属性键值对个数（K：属性名，V：属性值）  
-    u2 num_element_value_pairs;  
-    {  
-        // 指向属性名  
-        u2 element_name_index;  
-        // 属性值  
-        element_value value;  
-    }  element_value_pairs[num_element_value_pairs];  
-}      ​  
-element_value {  
-    // 表示是哪种值类型，具体的有  
-    // 基本类型、String、枚举、注解、Class、数组类型  
-    u1 tag;  
-
-    // 联合体，里面分别定义了每种值类型的格式  
-    union {  
-        // 基本类型和String类型  
-        u2 const_value_index;  
-
-        // 枚举类型  
-        {  
-            u2 type_name_index;  
-            u2 const_name_index;  
-        } enum_const_value;  
-
-        // class 类型  
-        u2 class_info_index;  
-
-        // 注解类型  
-        annotation annotation_values;  
-
-        // 数组类型  
-        {  
-            u2   num_values;  
-            element_value values[num_values];  
-        }  
-    } value;  
-}
+ * RuntimeVisibleAnnotations_attribute {
+ * // 前6个字节固定格式
+ * u2  attribute_name_index;
+ * u4  attribute_length;
+ * // 表示有几个注解
+ * u2  num_annotations;
+ * // 注解数组
+ * annotation  annotations[num_annotations];
+ * }
+ * annotation {
+ * // 主要指向该的类信息
+ * u2 type_index;
+ * // 该注解的属性键值对个数（K：属性名，V：属性值）
+ * u2 num_element_value_pairs;
+ * {
+ * // 指向属性名
+ * u2 element_name_index;
+ * // 属性值
+ * element_value value;
+ * }  element_value_pairs[num_element_value_pairs];
+ * }      ​
+ * element_value {
+ * // 表示是哪种值类型，具体的有
+ * // 基本类型、String、枚举、注解、Class、数组类型
+ * u1 tag;
+ * <p>
+ * // 联合体，里面分别定义了每种值类型的格式
+ * union {
+ * // 基本类型和String类型
+ * u2 const_value_index;
+ * <p>
+ * // 枚举类型
+ * {
+ * u2 type_name_index;
+ * u2 const_name_index;
+ * } enum_const_value;
+ * <p>
+ * // class 类型
+ * u2 class_info_index;
+ * <p>
+ * // 注解类型
+ * annotation annotation_values;
+ * <p>
+ * // 数组类型
+ * {
+ * u2   num_values;
+ * element_value values[num_values];
+ * }
+ * } value;
+ * }
  */
+
 /**
  * 注解解析器 - 通过.class字节码，对注解进行解析
  */
@@ -85,7 +87,7 @@ public class AnnotationParser {
 
     public AnnotationParser() {
     }
-    
+
     /**
      * parseAnnotations 注解解释器类
      * @param var0 注解的.class字节码数组
@@ -98,7 +100,7 @@ public class AnnotationParser {
         } else {
             try {
                 // 2. 对定义的注解进行解析
-                return parseAnnotations2(var0, var1, var2, (Class[])null);
+                return parseAnnotations2(var0, var1, var2, (Class[]) null);
             } catch (BufferUnderflowException var4) {
                 throw new AnnotationFormatError("Unexpected end of annotations.");
             } catch (IllegalArgumentException var5) {
@@ -124,14 +126,14 @@ public class AnnotationParser {
 
     /**
      * 对类的注解进行解析 
-     */ 
+     */
     private static Map<Class<? extends Annotation>, Annotation> parseAnnotations2(byte[] var0, ConstantPool var1, Class<?> var2, Class<? extends Annotation>[] var3) {
         LinkedHashMap var4 = new LinkedHashMap();
         ByteBuffer var5 = ByteBuffer.wrap(var0);
         // 1.读取注释字节码中 num_annotations 的值，确定有多少个注解 【var6 = num_annotations】
         int var6 = var5.getShort() & '\uffff';
         // 2.循环进行每个注解的解析
-        for(int var7 = 0; var7 < var6; ++var7) {
+        for (int var7 = 0; var7 < var6; ++var7) {
             Annotation var8 = parseAnnotation2(var5, var1, var2, false, var3);
             if (var8 != null) {
                 // 3.注解不为空时，获取注解的类型
@@ -194,16 +196,16 @@ public class AnnotationParser {
             LinkedHashMap var10 = new LinkedHashMap(var8.memberDefaults());
             int var11 = var0.getShort() & '\uffff';
 
-            for(int var12 = 0; var12 < var11; ++var12) {
+            for (int var12 = 0; var12 < var11; ++var12) {
                 int var13 = var0.getShort() & '\uffff';
                 String var14 = var1.getUTF8At(var13);
-                Class var15 = (Class)var9.get(var14);
+                Class var15 = (Class) var9.get(var14);
                 if (var15 == null) {
                     skipMemberValue(var0);
                 } else {
                     Object var16 = parseMemberValue(var15, var0, var1, var2);
                     if (var16 instanceof AnnotationTypeMismatchExceptionProxy) {
-                        ((AnnotationTypeMismatchExceptionProxy)var16).setMember((Method)var8.members().get(var14));
+                        ((AnnotationTypeMismatchExceptionProxy) var16).setMember((Method) var8.members().get(var14));
                     }
 
                     var10.put(var14, var16);
@@ -230,11 +232,11 @@ public class AnnotationParser {
         int var4 = var3.get() & 255;
         Annotation[][] var5 = new Annotation[var4][];
 
-        for(int var6 = 0; var6 < var4; ++var6) {
+        for (int var6 = 0; var6 < var4; ++var6) {
             int var7 = var3.getShort() & '\uffff';
             ArrayList var8 = new ArrayList(var7);
 
-            for(int var9 = 0; var9 < var7; ++var9) {
+            for (int var9 = 0; var9 < var7; ++var9) {
                 Annotation var10 = parseAnnotation(var3, var1, var2, false);
                 if (var10 != null) {
                     AnnotationType var11 = AnnotationType.getInstance(var10.annotationType());
@@ -244,21 +246,21 @@ public class AnnotationParser {
                 }
             }
 
-            var5[var6] = (Annotation[])var8.toArray(EMPTY_ANNOTATIONS_ARRAY);
+            var5[var6] = (Annotation[]) var8.toArray(EMPTY_ANNOTATIONS_ARRAY);
         }
 
         return var5;
     }
 
     static Annotation parseAnnotation(ByteBuffer var0, ConstantPool var1, Class<?> var2, boolean var3) {
-        return parseAnnotation2(var0, var1, var2, var3, (Class[])null);
+        return parseAnnotation2(var0, var1, var2, var3, (Class[]) null);
     }
 
-    
+
     public static Annotation annotationForMap(final Class<? extends Annotation> var0, final Map<String, Object> var1) {
-        return (Annotation)AccessController.doPrivileged(new PrivilegedAction<Annotation>() {
+        return (Annotation) AccessController.doPrivileged(new PrivilegedAction<Annotation>() {
             public Annotation run() {
-                return (Annotation)Proxy.newProxyInstance(var0.getClassLoader(), new Class[]{var0}, new AnnotationInvocationHandler(var0, var1));
+                return (Annotation) Proxy.newProxyInstance(var0.getClassLoader(), new Class[]{var0}, new AnnotationInvocationHandler(var0, var1));
             }
         });
     }
@@ -266,19 +268,19 @@ public class AnnotationParser {
     public static Object parseMemberValue(Class<?> var0, ByteBuffer var1, ConstantPool var2, Class<?> var3) {
         Object var4 = null;
         byte var5 = var1.get();
-        switch(var5) {
-        case 64:
-            var4 = parseAnnotation(var1, var2, var3, true);
-            break;
-        case 91:
-            return parseArray(var0, var1, var2, var3);
-        case 99:
-            var4 = parseClassValue(var1, var2, var3);
-            break;
-        case 101:
-            return parseEnumValue(var0, var1, var2, var3);
-        default:
-            var4 = parseConst(var5, var1, var2);
+        switch (var5) {
+            case 64:
+                var4 = parseAnnotation(var1, var2, var3, true);
+                break;
+            case 91:
+                return parseArray(var0, var1, var2, var3);
+            case 99:
+                var4 = parseClassValue(var1, var2, var3);
+                break;
+            case 101:
+                return parseEnumValue(var0, var1, var2, var3);
+            default:
+                var4 = parseConst(var5, var1, var2);
         }
 
         if (!(var4 instanceof ExceptionProxy) && !var0.isInstance(var4)) {
@@ -290,27 +292,27 @@ public class AnnotationParser {
 
     private static Object parseConst(int var0, ByteBuffer var1, ConstantPool var2) {
         int var3 = var1.getShort() & '\uffff';
-        switch(var0) {
-        case 66:
-            return (byte)var2.getIntAt(var3);
-        case 67:
-            return (char)var2.getIntAt(var3);
-        case 68:
-            return var2.getDoubleAt(var3);
-        case 70:
-            return var2.getFloatAt(var3);
-        case 73:
-            return var2.getIntAt(var3);
-        case 74:
-            return var2.getLongAt(var3);
-        case 83:
-            return (short)var2.getIntAt(var3);
-        case 90:
-            return var2.getIntAt(var3) != 0;
-        case 115:
-            return var2.getUTF8At(var3);
-        default:
-            throw new AnnotationFormatError("Invalid member-value tag in annotation: " + var0);
+        switch (var0) {
+            case 66:
+                return (byte) var2.getIntAt(var3);
+            case 67:
+                return (char) var2.getIntAt(var3);
+            case 68:
+                return var2.getDoubleAt(var3);
+            case 70:
+                return var2.getFloatAt(var3);
+            case 73:
+                return var2.getIntAt(var3);
+            case 74:
+                return var2.getLongAt(var3);
+            case 83:
+                return (short) var2.getIntAt(var3);
+            case 90:
+                return var2.getIntAt(var3) != 0;
+            case 115:
+                return var2.getUTF8At(var3);
+            default:
+                throw new AnnotationFormatError("Invalid member-value tag in annotation: " + var0);
         }
     }
 
@@ -346,7 +348,7 @@ public class AnnotationParser {
     }
 
     static Class<?> toClass(Type var0) {
-        return var0 instanceof GenericArrayType ? Array.newInstance(toClass(((GenericArrayType)var0).getGenericComponentType()), 0).getClass() : (Class)var0;
+        return var0 instanceof GenericArrayType ? Array.newInstance(toClass(((GenericArrayType) var0).getGenericComponentType()), 0).getClass() : (Class) var0;
     }
 
     private static Object parseEnumValue(Class<? extends Enum> var0, ByteBuffer var1, ConstantPool var2, Class<?> var3) {
@@ -406,11 +408,11 @@ public class AnnotationParser {
         boolean var4 = false;
         byte var5 = 0;
 
-        for(int var6 = 0; var6 < var0; ++var6) {
+        for (int var6 = 0; var6 < var0; ++var6) {
             var5 = var1.get();
             if (var5 == 66) {
                 int var7 = var1.getShort() & '\uffff';
-                var3[var6] = (byte)var2.getIntAt(var7);
+                var3[var6] = (byte) var2.getIntAt(var7);
             } else {
                 skipMemberValue(var5, var1);
                 var4 = true;
@@ -425,11 +427,11 @@ public class AnnotationParser {
         boolean var4 = false;
         byte var5 = 0;
 
-        for(int var6 = 0; var6 < var0; ++var6) {
+        for (int var6 = 0; var6 < var0; ++var6) {
             var5 = var1.get();
             if (var5 == 67) {
                 int var7 = var1.getShort() & '\uffff';
-                var3[var6] = (char)var2.getIntAt(var7);
+                var3[var6] = (char) var2.getIntAt(var7);
             } else {
                 skipMemberValue(var5, var1);
                 var4 = true;
@@ -444,7 +446,7 @@ public class AnnotationParser {
         boolean var4 = false;
         byte var5 = 0;
 
-        for(int var6 = 0; var6 < var0; ++var6) {
+        for (int var6 = 0; var6 < var0; ++var6) {
             var5 = var1.get();
             if (var5 == 68) {
                 int var7 = var1.getShort() & '\uffff';
@@ -463,7 +465,7 @@ public class AnnotationParser {
         boolean var4 = false;
         byte var5 = 0;
 
-        for(int var6 = 0; var6 < var0; ++var6) {
+        for (int var6 = 0; var6 < var0; ++var6) {
             var5 = var1.get();
             if (var5 == 70) {
                 int var7 = var1.getShort() & '\uffff';
@@ -482,7 +484,7 @@ public class AnnotationParser {
         boolean var4 = false;
         byte var5 = 0;
 
-        for(int var6 = 0; var6 < var0; ++var6) {
+        for (int var6 = 0; var6 < var0; ++var6) {
             var5 = var1.get();
             if (var5 == 73) {
                 int var7 = var1.getShort() & '\uffff';
@@ -501,7 +503,7 @@ public class AnnotationParser {
         boolean var4 = false;
         byte var5 = 0;
 
-        for(int var6 = 0; var6 < var0; ++var6) {
+        for (int var6 = 0; var6 < var0; ++var6) {
             var5 = var1.get();
             if (var5 == 74) {
                 int var7 = var1.getShort() & '\uffff';
@@ -520,11 +522,11 @@ public class AnnotationParser {
         boolean var4 = false;
         byte var5 = 0;
 
-        for(int var6 = 0; var6 < var0; ++var6) {
+        for (int var6 = 0; var6 < var0; ++var6) {
             var5 = var1.get();
             if (var5 == 83) {
                 int var7 = var1.getShort() & '\uffff';
-                var3[var6] = (short)var2.getIntAt(var7);
+                var3[var6] = (short) var2.getIntAt(var7);
             } else {
                 skipMemberValue(var5, var1);
                 var4 = true;
@@ -539,7 +541,7 @@ public class AnnotationParser {
         boolean var4 = false;
         byte var5 = 0;
 
-        for(int var6 = 0; var6 < var0; ++var6) {
+        for (int var6 = 0; var6 < var0; ++var6) {
             var5 = var1.get();
             if (var5 == 90) {
                 int var7 = var1.getShort() & '\uffff';
@@ -558,7 +560,7 @@ public class AnnotationParser {
         boolean var4 = false;
         byte var5 = 0;
 
-        for(int var6 = 0; var6 < var0; ++var6) {
+        for (int var6 = 0; var6 < var0; ++var6) {
             var5 = var1.get();
             if (var5 == 115) {
                 int var7 = var1.getShort() & '\uffff';
@@ -577,10 +579,10 @@ public class AnnotationParser {
         boolean var5 = false;
         byte var6 = 0;
 
-        for(int var7 = 0; var7 < var0; ++var7) {
+        for (int var7 = 0; var7 < var0; ++var7) {
             var6 = var1.get();
             if (var6 == 99) {
-                var4[var7] = (Class)parseClassValue(var1, var2, var3);
+                var4[var7] = (Class) parseClassValue(var1, var2, var3);
             } else {
                 skipMemberValue(var6, var1);
                 var5 = true;
@@ -591,11 +593,11 @@ public class AnnotationParser {
     }
 
     private static Object parseEnumArray(int var0, Class<? extends Enum<?>> var1, ByteBuffer var2, ConstantPool var3, Class<?> var4) {
-        Object[] var5 = (Object[])((Object[])Array.newInstance(var1, var0));
+        Object[] var5 = (Object[]) ((Object[]) Array.newInstance(var1, var0));
         boolean var6 = false;
         byte var7 = 0;
 
-        for(int var8 = 0; var8 < var0; ++var8) {
+        for (int var8 = 0; var8 < var0; ++var8) {
             var7 = var2.get();
             if (var7 == 101) {
                 var5[var8] = parseEnumValue(var1, var2, var3, var4);
@@ -609,11 +611,11 @@ public class AnnotationParser {
     }
 
     private static Object parseAnnotationArray(int var0, Class<? extends Annotation> var1, ByteBuffer var2, ConstantPool var3, Class<?> var4) {
-        Object[] var5 = (Object[])((Object[])Array.newInstance(var1, var0));
+        Object[] var5 = (Object[]) ((Object[]) Array.newInstance(var1, var0));
         boolean var6 = false;
         byte var7 = 0;
 
-        for(int var8 = 0; var8 < var0; ++var8) {
+        for (int var8 = 0; var8 < var0; ++var8) {
             var7 = var2.get();
             if (var7 == 64) {
                 var5[var8] = parseAnnotation(var2, var3, var4, true);
@@ -637,7 +639,7 @@ public class AnnotationParser {
 
         int var2 = var0.getShort() & '\uffff';
 
-        for(int var3 = 0; var3 < var2; ++var3) {
+        for (int var3 = 0; var3 < var2; ++var3) {
             var0.getShort();
             skipMemberValue(var0);
         }
@@ -650,18 +652,18 @@ public class AnnotationParser {
     }
 
     private static void skipMemberValue(int var0, ByteBuffer var1) {
-        switch(var0) {
-        case 64:
-            skipAnnotation(var1, true);
-            break;
-        case 91:
-            skipArray(var1);
-            break;
-        case 101:
-            var1.getInt();
-            break;
-        default:
-            var1.getShort();
+        switch (var0) {
+            case 64:
+                skipAnnotation(var1, true);
+                break;
+            case 91:
+                skipArray(var1);
+                break;
+            case 101:
+                var1.getInt();
+                break;
+            default:
+                var1.getShort();
         }
 
     }
@@ -669,7 +671,7 @@ public class AnnotationParser {
     private static void skipArray(ByteBuffer var0) {
         int var1 = var0.getShort() & '\uffff';
 
-        for(int var2 = 0; var2 < var1; ++var2) {
+        for (int var2 = 0; var2 < var1; ++var2) {
             skipMemberValue(var0);
         }
 
@@ -679,7 +681,7 @@ public class AnnotationParser {
         Object[] var2 = var0;
         int var3 = var0.length;
 
-        for(int var4 = 0; var4 < var3; ++var4) {
+        for (int var4 = 0; var4 < var3; ++var4) {
             Object var5 = var2[var4];
             if (var5 == var1) {
                 return true;
@@ -690,7 +692,7 @@ public class AnnotationParser {
     }
 
     public static Annotation[] toArray(Map<Class<? extends Annotation>, Annotation> var0) {
-        return (Annotation[])var0.values().toArray(EMPTY_ANNOTATION_ARRAY);
+        return (Annotation[]) var0.values().toArray(EMPTY_ANNOTATION_ARRAY);
     }
 
     static Annotation[] getEmptyAnnotationArray() {
