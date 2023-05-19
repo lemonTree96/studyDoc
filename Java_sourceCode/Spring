@@ -1,0 +1,34 @@
+public void refresh() throws BeansException, IllegalStateException {
+    synchronized(this.startupShutdownMonitor) {
+        StartupStep contextRefresh = this.applicationStartup.start("spring.context.refresh");
+        this.prepareRefresh();
+        ConfigurableListableBeanFactory beanFactory = this.obtainFreshBeanFactory();
+        this.prepareBeanFactory(beanFactory);
+
+        try {
+            this.postProcessBeanFactory(beanFactory);
+            StartupStep beanPostProcess = this.applicationStartup.start("spring.context.beans.post-process");
+            this.invokeBeanFactoryPostProcessors(beanFactory);
+            this.registerBeanPostProcessors(beanFactory);
+            beanPostProcess.end();
+            this.initMessageSource();
+            this.initApplicationEventMulticaster();
+            this.onRefresh();
+            this.registerListeners();
+            this.finishBeanFactoryInitialization(beanFactory);
+            this.finishRefresh();
+        } catch (BeansException var10) {
+            if (this.logger.isWarnEnabled()) {
+                this.logger.warn("Exception encountered during context initialization - cancelling refresh attempt: " + var10);
+            }
+
+            this.destroyBeans();
+            this.cancelRefresh(var10);
+            throw var10;
+        } finally {
+            this.resetCommonCaches();
+            contextRefresh.end();
+        }
+
+    }
+}
